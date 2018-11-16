@@ -2,7 +2,6 @@
 # frozen_string_literal: true
 
 require 'bundler/setup'
-require 'bundler/console'
+require 'bundler/changelogs'
 
-require 'irb'
-IRB.start(__FILE__)
+#TODO: call exec

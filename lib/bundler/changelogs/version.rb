@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Bundler
-  module Console
-    VERSION = '0.0.2'
+  module Changelogs
+    VERSION = '0.0.1'
   end
 end

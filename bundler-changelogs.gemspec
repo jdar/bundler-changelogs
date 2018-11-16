@@ -2,17 +2,17 @@
 
 lib = File.expand_path('lib', __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'bundler/console/version'
+require 'bundler/changelogs/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = 'bundler-console'
-  spec.version       = Bundler::Console::VERSION
-  spec.authors       = ['Kevin Deisz']
-  spec.email         = ['kevin.deisz@gmail.com']
+  spec.name          = 'bundler-changelogs'
+  spec.version       = Bundler::Changelogs::VERSION
+  spec.authors       = ['Darius Roberts']
+  spec.email         = ['darius.roberts@gmail.com']
 
-  spec.summary       = 'A bundler plugin that starts a console session with ' \
-                       'your gem dependencies.'
-  spec.homepage      = 'https://github.com/kddeisz/bundler-console'
+  spec.summary       = 'A bundler plugin that shows changelogs of ' \
+                       'your gem dependencies that specify changelog urls [not yet filtered to git version updates].'
+  spec.homepage      = 'https://github.com/jdar/bundler-changelogs'
   spec.license       = 'MIT'
 
   spec.files         = `git ls-files -z`.split("\x0").reject do |f|
