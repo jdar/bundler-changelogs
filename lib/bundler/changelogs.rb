@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 require 'stringio'
 require 'pathname'
+require 'fileutils'
 require 'bundler/changelogs/version'
 
 module Bundler
@@ -9,6 +10,12 @@ module Bundler
       Plugin::API.command('changelogs', self)
       attr_accessor :current_lockfile_parsed
       attr_accessor :previous_lockfile_parsed
+      
+      #  Justification for not using gems.locked
+      #  need a callback in lifecycle to ensure non-git-managed-locks populate a git-managed file
+      ::Bundler::Plugin.add_hook('after-install-all') do |dependencies|
+        FileUtils.cp Bundler.default_lockfile, '.changelogs_gems.locked'
+      end
 
       def exec(_name, args)
         if args.any?
@@ -20,16 +27,12 @@ module Bundler
         current_lockfile = '.changelogs_gems.locked'
         previous_lockfile_content = `git show #{Bundler.settings[:changlog_commit] || "HEAD"}:#{current_lockfile}`
 
-        #  Justification for not using gems.locked
-        #   
-        #TODO: need a callback in lifecycle to ensure non-git-managed-locks populate a git-managed file
-        #cp Gemfile.lock .changelogs_gems.locked
-
         self.current_lockfile_parsed = Bundler::LockfileParser.new(Bundler.read_file(current_lockfile))
         self.previous_lockfile_parsed = Bundler::LockfileParser.new(previous_lockfile_content)
 
         ARGV.clear
         gems = get_gems_with_changelogs
+        binding.pry
         if gems.empty?
           Bundler.ui.error("Up to date. Nothing to show. Or: you already commmited the bundle changes to git? You can specify a range of git commits like this: TODO")
           return
@@ -42,7 +45,7 @@ module Bundler
         changelog_output_path = Bundler.settings[:changelog_output_path] 
         if changelog_output_path 
           path = Pathname.new(changelog_output_path)
-          path.open("w+"){|f| f.puts(io.read) }
+          path.open("w+"){|f| f.puts io.read }
 
           #TODO: how to get CWD, crossplatform? Then, remove this verbosity.
           #TODO: other than error...
@@ -90,7 +93,7 @@ module Bundler
       def write_changelog_output!(gems,io)
         for gem_obj in gems
           #TODO: if gem_obj is a simpledelegate, just ask for the precomputed diff
-          io.puts(gem[:changelog])
+          io.puts(gem_obj[:changelog])
         end
         nil
       end
