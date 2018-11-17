@@ -3,6 +3,7 @@ require 'stringio'
 require 'pathname'
 require 'fileutils'
 require 'bundler/changelogs/version'
+require 'bundler/changelogs/standard_format_repo_changelog'
 require 'open-uri'
 
 module Bundler
@@ -34,15 +35,17 @@ module Bundler
         self.previous_lockfile_parsed = Bundler::LockfileParser.new(previous_lockfile_content)
 
         ARGV.clear
-        specs = get_changelogs
-        binding.pry
-        if specs.empty?
+        changelogs = get_changelogs
+        if changelogs.empty?
           Bundler.ui.error("Up to date. Nothing to show. Or: you already commmited the bundle changes to git? You can specify a range of git commits like this: TODO")
+          return
+        elsif changelogs.values.compact.empty?
+          Bundler.ui.error("Could not find any changelogs changes which could be displayed.")
           return
         end
 
         io = StringIO.new
-        write_changelog_output!(specs,io)
+        write_changelog_output!(changelogs,io)
         io.rewind
 
         changelog_output_path = Bundler.settings[:changelog_output_path] 
@@ -54,7 +57,6 @@ module Bundler
           #TODO: other than error...
           Bundler.ui.info("Changelogs written to: #{path}")
         else
-          binding.pry
           Bundler.ui.info(io.read)
         end
       
@@ -64,7 +66,7 @@ module Bundler
 
       def materialized_specs_excluding_bundler_plugins
         lookup_current_spec = current_lockfile_parsed.specs.inject({}) {|acc,s| acc.merge(s.name=>s)}
-        lookup_previous_spec = current_lockfile_parsed.specs.inject({}) {|acc,s| acc.merge(s.name=>s)}
+        lookup_previous_spec = previous_lockfile_parsed.specs.inject({}) {|acc,s| acc.merge(s.name=>s)}
 
         current_lockfile_parsed.dependencies.map do |token, dep|
           next unless lookup_previous_spec[token] 
@@ -75,52 +77,42 @@ module Bundler
           #TODO: next if dep is a plugin
 
           previous_spec = lookup_previous_spec[token]  #use the previous spec, since it has the version number
-          spec.__materialize__
-          spec
+          materialize(previous_spec)
+          previous_spec
         end.compact
       end
 
-      def attempt_to_filter_changelog(previous_spec)
-        Bundler.ui.info("Getting #{previous_spec.name} changelog_uri")
-        content = open(previous_spec.metadata['changelog_uri'])
-
-        new_hotness,old_hotness = try_split(content,previous_spec)
-        post_process(new_hotness)
-      end
-
-      #dumb strategy. seems to fit ruby conventions?
-      def try_split(content,previous_spec)
-        dumb_tokenizer_token = previous_spec.version.to_s
-        first,*last = content.split(dumb_tokenizer_token)
-        [first,last.join(dumb_tokenizer_token)]
-      end
-      #dumb cleaning. seems to fit ruby conventions?
-      def post_process(content)
-        content = content.dup
-        content.gsub!(/^\s*changelog[^\w]+/)
-        content
-      end
 
       def get_changelogs
-        specs = []
+        changelogs = {}
         for previous_spec in materialized_specs_excluding_bundler_plugins
           if previous_spec.metadata['changelog_uri']
-            applicable_changelog_text = attempt_to_filter_changelog(previous_spec)
+            Bundler.ui.info("Getting #{previous_spec.name} changelog_uri")
+            content = open(previous_spec.metadata['changelog_uri'])
+            changelog = StandardFormatRepoChangelog.new(previous_spec,content)
+            applicable_changelog_text = changelog.since(previous_spec.version)
             if applicable_changelog_text.to_s.length > 0
-              specs << previous_spec 
+              changelogs[previous_spec.name] = applicable_changelog_text
+            else
+              Bundler.ui.error("Skipping #{previous_spec.name}. Found gem, but ... something? TODO: #{previous_spec.name}.")
             end
           else
-            Bundler.ui.error("Skipping #{previous_spec.name}. Found gem, but no changelog is formally specified. But you can poke around yourself: TODO, path to repo for #{previous_spec.name}.")
+            Bundler.ui.error("Skipping #{previous_spec.name}. Found gem, but no changelog is formally specified.\nFollow this link to request someone review the changelog for this gem: TODO: #{previous_spec.name}.")
           end
         end
-        specs 
+        changelogs
       end
 
-      def write_changelog_output!(specs,io)
-        for spec_obj in specs
-          io.puts(spec_obj.metadata[:changelog])
+      def write_changelog_output!(changelogs,io)
+        for spec_name, changelog_diff in changelogs
+          io.puts(changelog_diff)
         end
         nil
+      end
+
+      #there's probably a better way to test lazy objects
+      def materialize(spec)
+        spec.__materialize__
       end
 
     end

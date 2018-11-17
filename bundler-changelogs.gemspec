@@ -15,7 +15,7 @@ Gem::Specification.new do |spec|
   spec.homepage      = 'https://github.com/jdar/bundler-changelogs'
   spec.license       = 'MIT'
   spec.metadata      = {
-    'changelog_uri' =>     "changelog_uri" => "https://github.com/jdar/bundler-changelogs/blob/master/CHANGELOG.md",
+    "changelog_uri" => "https://github.com/jdar/bundler-changelogs/blob/master/CHANGELOG.md",
   }
 
   spec.files         = `git ls-files -z`.split("\x0").reject do |f|
