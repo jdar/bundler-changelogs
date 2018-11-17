@@ -2,6 +2,8 @@
 
 A bundler plugin that shows changelogs of your gem dependencies that specify changelog urls [not yet filtered to git version updates].
 
+The changelog_uri would be specified in the 'metadata' section of a gemspec. Not many gems do this, tho
+
 ## Installation
 
     $ bundle plugin install bundler-changelogs

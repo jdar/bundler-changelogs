@@ -14,6 +14,9 @@ Gem::Specification.new do |spec|
                        'your gem dependencies that specify changelog urls [not yet filtered to git version updates].'
   spec.homepage      = 'https://github.com/jdar/bundler-changelogs'
   spec.license       = 'MIT'
+  spec.metadata      = {
+    'changelog_uri' =>     "changelog_uri" => "https://github.com/jdar/bundler-changelogs/blob/master/CHANGELOG.md",
+  }
 
   spec.files         = `git ls-files -z`.split("\x0").reject do |f|
     f.match(%r{^(test|spec|features)/})
